@@ -2,6 +2,7 @@ import { Component } from 'react'
 import { AppProvider, useApp } from './context/AppContext'
 import { AudioProvider } from './context/AudioContext'
 import SplashScreen from './components/splash/SplashScreen'
+import IntroSlides from './components/splash/IntroSlides'
 import WorkspaceLayout from './components/layout/WorkspaceLayout'
 
 class ErrorBoundary extends Component {
@@ -31,7 +32,9 @@ class ErrorBoundary extends Component {
 
 function AppContent() {
   const { state } = useApp()
-  return state.phase === 'splash' ? <SplashScreen /> : <WorkspaceLayout />
+  if (state.phase === 'splash') return <SplashScreen />
+  if (state.phase === 'intro') return <IntroSlides />
+  return <WorkspaceLayout />
 }
 
 export default function App() {

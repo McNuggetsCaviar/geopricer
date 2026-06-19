@@ -38,8 +38,8 @@ function ModuleItem({ cityId, moduleId, visited }) {
   function handleClick() {
     dispatch({ type: 'SET_ACTIVE_CITY', city: cityId })
     dispatch({ type: 'SET_ACTIVE_MODULE', module: moduleId })
-    const clipKey = city.audioClips[moduleId]
-    if (clipKey) play(clipKey)
+    const clips = city.audioClips[moduleId]
+    if (clips) play(clips)
   }
 
   return (

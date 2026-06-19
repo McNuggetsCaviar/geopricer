@@ -55,7 +55,7 @@ export function useDataLoader() {
       const remaining = Math.max(0, MIN_SPLASH_MS - elapsed)
       await new Promise((r) => setTimeout(r, remaining))
 
-      dispatch({ type: 'SET_PHASE', phase: 'workspace' })
+      dispatch({ type: 'SET_PHASE', phase: 'intro' })
     }
 
     load().catch(console.error)

@@ -77,7 +77,7 @@ export default function StatsPanel() {
       </div>
 
       {/* Active module content */}
-      <div className="flex-1 overflow-y-auto p-3">
+      <div className="flex-1 overflow-y-auto p-3" style={{ scrollbarWidth: 'thin', scrollbarColor: '#1F2937 transparent' }}>
         {ActiveModule ? <ActiveModule /> : <EmptyState />}
       </div>
 

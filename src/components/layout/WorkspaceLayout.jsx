@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useApp } from '../../context/AppContext'
 import { useAudio } from '../../context/AudioContext'
+import { CITY_ORDER, MODULE_ORDER } from '../../data/cityConfig'
 import TutorialSidebar from './TutorialSidebar'
 import CentralMap from '../map/CentralMap'
 import StatsPanel from './StatsPanel'
@@ -66,9 +68,56 @@ function AudioUnlockOverlay({ onUnlock }) {
   )
 }
 
+function CompletionScreen({ onRestart }) {
+  return (
+    <div className="absolute inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(10,14,23,0.96)', backdropFilter: 'blur(8px)' }}>
+      <div className="text-center animate-fade-up max-w-lg px-8">
+        <div className="text-5xl mb-6">✅</div>
+        <div className="text-2xl font-bold text-text mb-3">Présentation terminée</div>
+        <p className="text-sm text-muted leading-relaxed mb-8">
+          Les trois zones ont été analysées — Manille, Miami, Tokyo. La méthodologie AAL, le modèle Holland, et les stratégies d'adaptation ont été présentés sur 15 modules.
+        </p>
+        <div className="grid grid-cols-3 gap-4 mb-8 text-xs font-mono">
+          {[
+            { city: '🇵🇭 Manille', risk: 'Typhon', color: '#E24B4A' },
+            { city: '🇺🇸 Miami', risk: 'Ouragan', color: '#EF9F27' },
+            { city: '🇯🇵 Tokyo', risk: 'Tsunami', color: '#60A5FA' },
+          ].map((c) => (
+            <div key={c.city} className="rounded-lg p-3 border border-border" style={{ background: '#0D1117' }}>
+              <div className="text-text mb-1">{c.city}</div>
+              <div style={{ color: c.color }}>{c.risk} ✓</div>
+            </div>
+          ))}
+        </div>
+        <button
+          onClick={onRestart}
+          className="text-sm text-muted border border-border hover:border-accent/40 hover:text-text px-5 py-2 rounded transition-all"
+        >
+          ← Revoir un module
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function WorkspaceLayout() {
-  const { state, pause, resume, unlock } = useAudio()
-  const [showUnlock, setShowUnlock] = useState(!state.isUnlocked)
+  const { state: appState } = useApp()
+  const { state: audioState, pause, resume, unlock, play } = useAudio()
+  const [showUnlock, setShowUnlock] = useState(!audioState.isUnlocked)
+  const [showCompletion, setShowCompletion] = useState(false)
+  const conclusionPlayed = useRef(false)
+
+  // Detect all 15 modules visited → play conclusion + show screen
+  useEffect(() => {
+    const allDone = CITY_ORDER.every((c) =>
+      MODULE_ORDER.every((m) => appState.visitedModules[c]?.[m])
+    )
+    if (allDone && !conclusionPlayed.current) {
+      conclusionPlayed.current = true
+      play('09_conclusion')
+      setTimeout(() => setShowCompletion(true), 500)
+    }
+  }, [appState.visitedModules, play])
 
   function handleUnlock() {
     unlock()
@@ -78,11 +127,12 @@ export default function WorkspaceLayout() {
   return (
     <div className="relative flex flex-col h-full" style={{ background: '#0A0E17' }}>
       {showUnlock && <AudioUnlockOverlay onUnlock={handleUnlock} />}
+      {showCompletion && <CompletionScreen onRestart={() => setShowCompletion(false)} />}
 
       <Header
-        onPauseResume={state.isPlaying ? pause : resume}
-        isPlaying={state.isPlaying}
-        hasAudio={!!state.currentClip || state.isPlaying}
+        onPauseResume={audioState.isPlaying ? pause : resume}
+        isPlaying={audioState.isPlaying}
+        hasAudio={!!audioState.currentClip || audioState.isPlaying}
       />
 
       <div className="flex flex-1 overflow-hidden">
