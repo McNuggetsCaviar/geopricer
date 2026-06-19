@@ -14,7 +14,6 @@ function MapController() {
   const mounted = useRef(false)
 
   useEffect(() => {
-    // On first mount: invalidate size so Leaflet gets correct dimensions, then set view
     if (!mounted.current) {
       mounted.current = true
       lastCity.current = state.activeCity
@@ -34,6 +33,27 @@ function MapController() {
       map.flyTo(city.coords, city.zoom, { duration: 1.5 })
     } catch {}
   }, [state.activeCity, map])
+
+  return null
+}
+
+function MapFocusController() {
+  const { state } = useApp()
+  const map = useMap()
+  const lastFocus = useRef(null)
+
+  useEffect(() => {
+    const f = state.focus
+    if (!f || f === lastFocus.current) return
+    lastFocus.current = f
+    try {
+      if (f.type === 'storm' && f.bounds) {
+        map.flyToBounds(f.bounds, { padding: [60, 60], maxZoom: 10, duration: 1.2 })
+      } else if (f.type === 'building') {
+        map.flyTo([f.lat, f.lng], 17, { duration: 1.0 })
+      }
+    } catch {}
+  }, [state.focus, map])
 
   return null
 }
@@ -86,6 +106,7 @@ export default function CentralMap() {
         />
 
         <MapController />
+        <MapFocusController />
         <H3Layer />
         <StormTrackLayer />
         <AssetMarker />

@@ -3,6 +3,14 @@ import { useApp } from '../../context/AppContext'
 import { CITIES } from '../../data/cityConfig'
 import { windAtAsset, windToCategory } from '../../lib/holland'
 
+function getTrackBounds(feature) {
+  const coords = feature?.geometry?.coordinates
+  if (!coords || coords.length === 0) return null
+  const lats = coords.map(c => c[1])
+  const lngs = coords.map(c => c[0])
+  return [[Math.min(...lats), Math.min(...lngs)], [Math.max(...lats), Math.max(...lngs)]]
+}
+
 function ktToCategory(kt) {
   if (!kt) return '—'
   if (kt >= 137) return '5'
@@ -109,7 +117,7 @@ function WindImpactBar({ wind_kmh, threshold = 120 }) {
 }
 
 export default function HistoryModule() {
-  const { state } = useApp()
+  const { state, dispatch } = useApp()
   const cityId = state.activeCity
   const city = CITIES[cityId]
   const cityFC = state.appData.storms?.[cityId]
@@ -143,12 +151,28 @@ export default function HistoryModule() {
       {stormAnalyses.map(({ stormId, feature, details, props, windResult, estimatedLoss }) => {
         const peakKmh = props?.peak_kmh || Math.round((props?.peak_kt || 0) * 1.852)
         const cat = ktToCategory(props?.peak_kt)
+        const isFocused = state.focus?.type === 'storm' &&
+          state.focus.name?.toLowerCase() === props?.name?.toLowerCase() &&
+          state.focus.year === props?.year
+
+        function handleFocus() {
+          if (isFocused) { dispatch({ type: 'CLEAR_FOCUS' }); return }
+          if (!feature) return
+          const bounds = getTrackBounds(feature)
+          dispatch({ type: 'SET_ACTIVE_MODULE', module: 'history' })
+          dispatch({ type: 'SET_FOCUS', focus: { type: 'storm', name: props.name, year: props.year, bounds } })
+        }
 
         return (
           <div
             key={stormId}
-            className="rounded-lg border border-border p-3 space-y-2"
-            style={{ background: '#0D1117' }}
+            onClick={handleFocus}
+            className="rounded-lg border p-3 space-y-2 cursor-pointer transition-all duration-200"
+            style={{
+              background: isFocused ? '#1a1f2e' : '#0D1117',
+              borderColor: isFocused ? (details?.impactColor || '#1D9E75') : '#1F2937',
+              boxShadow: isFocused ? `0 0 0 1px ${details?.impactColor || '#1D9E75'}44` : 'none',
+            }}
           >
             {/* Header */}
             <div className="flex items-start justify-between">

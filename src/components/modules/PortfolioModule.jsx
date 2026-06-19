@@ -6,22 +6,37 @@ import { windAtAsset } from '../../lib/holland'
 import { damageRatio, BUILDING_TYPE_LABELS } from '../../lib/fema'
 
 function BuildingRow({ building, stormAnalyses }) {
+  const { state, dispatch } = useApp()
   const bestWind = Math.max(...stormAnalyses.map((a) => a.wind))
-  const bestDmg  = stormAnalyses.reduce(
-    (acc, a) => Math.max(acc, a.loss),
-    0
-  )
   const dr = damageRatio(bestWind, building.type)
   const maxLoss = Math.round(building.value * dr)
   const typeLabel = BUILDING_TYPE_LABELS[building.type] || building.type
+
+  const isFocused = state.focus?.type === 'building' && state.focus.id === building.id
 
   const color = bestWind >= 178 ? '#E24B4A'
     : bestWind >= 119 ? '#EF9F27'
     : bestWind >= 63  ? '#60A5FA'
     : '#6B7280'
 
+  function handleFocus() {
+    if (isFocused) { dispatch({ type: 'CLEAR_FOCUS' }); return }
+    dispatch({ type: 'SET_FOCUS', focus: {
+      type: 'building', id: building.id,
+      lat: building.lat, lng: building.lng, label: building.label,
+    }})
+  }
+
   return (
-    <div className="rounded border border-border p-2.5 space-y-1.5" style={{ background: '#0D1117' }}>
+    <div
+      onClick={handleFocus}
+      className="rounded border p-2.5 space-y-1.5 cursor-pointer transition-all duration-200"
+      style={{
+        background: isFocused ? '#1a1f2e' : '#0D1117',
+        borderColor: isFocused ? color : '#1F2937',
+        boxShadow: isFocused ? `0 0 0 1px ${color}44` : 'none',
+      }}
+    >
       <div className="flex items-start justify-between gap-2">
         <div>
           <div className="text-xs font-semibold text-text">{building.label}</div>

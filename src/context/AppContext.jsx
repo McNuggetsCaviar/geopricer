@@ -9,7 +9,7 @@ const initialVisited = Object.fromEntries(
 )
 
 const initialState = {
-  phase: 'splash',
+  phase: 'splash', // 'splash' | 'intro' | 'workspace'
   loadingProgress: {
     openMeteoManila: 'idle',
     openMeteoMiami: 'idle',
@@ -26,6 +26,8 @@ const initialState = {
   activeModule: null,
   visitedModules: initialVisited,
   mitigationEnabled: { manila: false, miami: false, tokyo: false },
+  // focus: null | { type:'storm', name, year, bounds } | { type:'building', id, lat, lng, label }
+  focus: null,
 }
 
 function reducer(state, action) {
@@ -90,6 +92,12 @@ function reducer(state, action) {
           [action.city]: !state.mitigationEnabled[action.city],
         },
       }
+
+    case 'SET_FOCUS':
+      return { ...state, focus: action.focus }
+
+    case 'CLEAR_FOCUS':
+      return { ...state, focus: null }
 
     default:
       return state
