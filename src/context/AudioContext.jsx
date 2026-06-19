@@ -42,6 +42,7 @@ const AudioCtx = createContext(null)
 export function AudioProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState)
   const audioRef = useRef(null)
+  const pendingRef = useRef({ clip: null, queue: [] })  // ref avoids stale closure in unlock()
 
   // Create audio element once
   useEffect(() => {
@@ -96,6 +97,7 @@ export function AudioProvider({ children }) {
     if (!clip) return
 
     if (!state.isUnlocked) {
+      pendingRef.current = { clip, queue }
       dispatch({ type: 'SET_PENDING', clip, queue })
       return
     }
@@ -108,12 +110,16 @@ export function AudioProvider({ children }) {
   const pause = useCallback(() => dispatch({ type: 'PAUSE' }), [])
   const resume = useCallback(() => dispatch({ type: 'RESUME' }), [])
 
-  const unlock = useCallback(() => {
+  // unlock() reads pendingRef (not stale state) so the clip plays immediately
+  const unlock = useCallback((immediateClip = null, immediateQueue = []) => {
     dispatch({ type: 'UNLOCK' })
-    if (state.pendingClip) {
-      dispatch({ type: 'PLAY', clip: state.pendingClip, queue: state.pendingQueue })
+    const clip = immediateClip || pendingRef.current.clip
+    const queue = immediateClip ? immediateQueue : pendingRef.current.queue
+    if (clip) {
+      dispatch({ type: 'PLAY', clip, queue })
+      pendingRef.current = { clip: null, queue: [] }
     }
-  }, [state.pendingClip, state.pendingQueue])
+  }, [])
 
   const stop = useCallback(() => {
     const audio = audioRef.current

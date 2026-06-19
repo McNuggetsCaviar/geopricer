@@ -68,9 +68,8 @@ export default function IntroSlides() {
   }, [audioState.isPlaying, audioState.currentClip])
 
   function handleUnlock() {
-    unlock()
+    unlock('01_intro')
     setShowUnlock(false)
-    play('01_intro')
   }
 
   function goToWorkspace() {
