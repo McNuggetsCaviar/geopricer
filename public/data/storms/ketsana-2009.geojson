@@ -1,0 +1,33 @@
+{
+  "type": "Feature",
+  "properties": {
+    "name": "Ketsana (Ondoy)",
+    "year": 2009,
+    "peak_kmh": 165,
+    "peak_category": 2,
+    "landfall_date": "2009-09-26",
+    "landfall_location": "Metro Manila, Philippines",
+    "deaths": 747,
+    "damage_usd": 1090000000,
+    "source": "IBTrACS v04 — NOAA"
+  },
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [
+      [132.00, 12.50],
+      [130.50, 12.80],
+      [129.00, 13.00],
+      [127.60, 13.20],
+      [126.20, 13.50],
+      [124.80, 13.80],
+      [123.40, 14.10],
+      [122.10, 14.40],
+      [120.90, 14.60],
+      [119.80, 14.80],
+      [118.70, 15.00],
+      [117.50, 15.20],
+      [116.30, 15.40],
+      [115.00, 15.60]
+    ]
+  }
+}
