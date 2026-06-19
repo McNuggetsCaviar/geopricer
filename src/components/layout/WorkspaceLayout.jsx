@@ -6,7 +6,130 @@ import TutorialSidebar from './TutorialSidebar'
 import CentralMap from '../map/CentralMap'
 import StatsPanel from './StatsPanel'
 
-function Header({ onPauseResume, isPlaying, hasAudio }) {
+// Ordered sequence of all clips with their workspace destination
+const CLIP_SEQUENCE = [
+  { id: '02_manille_zone',     label: 'Manille — Zone & Quartier',   city: 'manila', module: 'zone' },
+  { id: '03_manille_rammasun', label: 'Manille — Rammasun 2014',     city: 'manila', module: 'history' },
+  { id: '04_manille_ketsana',  label: 'Manille — Ketsana 2009',      city: 'manila', module: 'history' },
+  { id: '05_manille_aal',      label: 'Manille — Calcul AAL',        city: 'manila', module: 'aal' },
+  { id: '06_manille_mitigation', label: 'Manille — Mitigation',      city: 'manila', module: 'mitigation' },
+  { id: '07_miami_zone',       label: 'Miami — Brickell',            city: 'miami',  module: 'zone' },
+  { id: '08_tokyo_zone',       label: 'Tokyo — Kōtō-ku',            city: 'tokyo',  module: 'zone' },
+  { id: '09_conclusion',       label: 'Conclusion',                  city: null,     module: null },
+]
+
+function fmt(secs) {
+  if (!secs || !isFinite(secs)) return '0:00'
+  const m = Math.floor(secs / 60)
+  const s = Math.floor(secs % 60).toString().padStart(2, '0')
+  return `${m}:${s}`
+}
+
+function AudioPlayerBar() {
+  const { state: audioState, play, pause, resume, audioRef } = useAudio()
+  const { dispatch } = useApp()
+  const [progress, setProgress] = useState({ current: 0, duration: 0 })
+
+  // Poll audio currentTime at 4fps for smooth progress bar
+  useEffect(() => {
+    const id = setInterval(() => {
+      const audio = audioRef.current
+      if (audio) setProgress({ current: audio.currentTime, duration: audio.duration || 0 })
+    }, 250)
+    return () => clearInterval(id)
+  }, [audioRef])
+
+  const currentIdx = CLIP_SEQUENCE.findIndex(c => c.id === audioState.currentClip)
+  const currentClipInfo = CLIP_SEQUENCE[currentIdx] ?? null
+  const hasPrev = currentIdx > 0
+  const hasNext = currentIdx < CLIP_SEQUENCE.length - 1
+
+  function navigate(idx) {
+    const clip = CLIP_SEQUENCE[idx]
+    if (!clip) return
+    play(clip.id)
+    if (clip.city) {
+      dispatch({ type: 'SET_ACTIVE_CITY', city: clip.city })
+      dispatch({ type: 'SET_ACTIVE_MODULE', module: clip.module })
+    }
+  }
+
+  function handleSeek(e) {
+    const audio = audioRef.current
+    if (!audio || !audio.duration) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const ratio = (e.clientX - rect.left) / rect.width
+    audio.currentTime = ratio * audio.duration
+    setProgress({ current: audio.currentTime, duration: audio.duration })
+  }
+
+  const pct = progress.duration > 0 ? (progress.current / progress.duration) * 100 : 0
+
+  return (
+    <div
+      className="flex items-center gap-3 px-4 border-t border-border flex-shrink-0"
+      style={{ background: '#0D1117', height: 48 }}
+    >
+      {/* Prev */}
+      <button
+        onClick={() => navigate(currentIdx - 1)}
+        disabled={!hasPrev}
+        className="text-muted hover:text-text disabled:opacity-20 transition-colors text-sm w-6 text-center"
+        title="Clip précédent"
+      >
+        ⏮
+      </button>
+
+      {/* Play / Pause */}
+      <button
+        onClick={audioState.isPlaying ? pause : resume}
+        className="text-text hover:text-risk-low transition-colors text-base w-6 text-center"
+        title={audioState.isPlaying ? 'Pause' : 'Lecture'}
+      >
+        {audioState.isPlaying ? '⏸' : '▶'}
+      </button>
+
+      {/* Next */}
+      <button
+        onClick={() => navigate(currentIdx + 1)}
+        disabled={!hasNext}
+        className="text-muted hover:text-text disabled:opacity-20 transition-colors text-sm w-6 text-center"
+        title="Clip suivant"
+      >
+        ⏭
+      </button>
+
+      {/* Clip label */}
+      <div className="text-xs font-mono text-muted truncate w-44 flex-shrink-0">
+        {currentClipInfo ? currentClipInfo.label : <span className="opacity-40">— En attente —</span>}
+      </div>
+
+      {/* Progress bar — clickable to seek */}
+      <div
+        className="flex-1 h-1 rounded-full cursor-pointer group relative"
+        style={{ background: '#1F2937' }}
+        onClick={handleSeek}
+      >
+        <div
+          className="h-full rounded-full transition-none"
+          style={{ width: `${pct}%`, background: '#1D9E75' }}
+        />
+        {/* Scrubber dot */}
+        <div
+          className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-text opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+          style={{ left: `calc(${pct}% - 5px)` }}
+        />
+      </div>
+
+      {/* Time */}
+      <div className="text-xs font-mono text-muted flex-shrink-0 tabular-nums">
+        {fmt(progress.current)} / {fmt(progress.duration)}
+      </div>
+    </div>
+  )
+}
+
+function Header() {
   return (
     <header
       className="flex items-center justify-between px-4 py-2 border-b border-border flex-shrink-0"
@@ -27,23 +150,8 @@ function Header({ onPauseResume, isPlaying, hasAudio }) {
           <span style={{ color: '#1D9E75' }}>AXA Climate</span>
         </div>
       </div>
-
-      <div className="flex items-center gap-3">
-        {hasAudio && (
-          <button
-            onClick={onPauseResume}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-border text-xs text-muted hover:text-text hover:border-accent/40 transition-all"
-          >
-            {isPlaying ? (
-              <><span>⏸</span><span className="hidden sm:inline">Pause audio</span></>
-            ) : (
-              <><span>▶</span><span className="hidden sm:inline">Reprendre</span></>
-            )}
-          </button>
-        )}
-        <div className="text-xs text-muted font-mono hidden md:block">
-          IBTrACS · ERA5 · FEMA
-        </div>
+      <div className="text-xs text-muted font-mono hidden md:block">
+        IBTrACS · ERA5 · FEMA
       </div>
     </header>
   )
@@ -102,12 +210,11 @@ function CompletionScreen({ onRestart }) {
 
 export default function WorkspaceLayout() {
   const { state: appState } = useApp()
-  const { state: audioState, pause, resume, unlock, play } = useAudio()
+  const { state: audioState, unlock, play } = useAudio()
   const [showUnlock, setShowUnlock] = useState(!audioState.isUnlocked)
   const [showCompletion, setShowCompletion] = useState(false)
   const conclusionPlayed = useRef(false)
 
-  // Detect all 15 modules visited → play conclusion + show screen
   useEffect(() => {
     const allDone = CITY_ORDER.every((c) =>
       MODULE_ORDER.every((m) => appState.visitedModules[c]?.[m])
@@ -129,17 +236,15 @@ export default function WorkspaceLayout() {
       {showUnlock && <AudioUnlockOverlay onUnlock={handleUnlock} />}
       {showCompletion && <CompletionScreen onRestart={() => setShowCompletion(false)} />}
 
-      <Header
-        onPauseResume={audioState.isPlaying ? pause : resume}
-        isPlaying={audioState.isPlaying}
-        hasAudio={!!audioState.currentClip || audioState.isPlaying}
-      />
+      <Header />
 
       <div className="flex flex-1 overflow-hidden">
         <TutorialSidebar />
         <CentralMap />
         <StatsPanel />
       </div>
+
+      <AudioPlayerBar />
     </div>
   )
 }
